@@ -1,2 +1,5 @@
 [phases.setup]
-nixPkgs = ["ffmpeg", "libffi", "libsodium"]
+nixPkgs = ["ffmpeg-full", "libffi", "libsodium"]
+
+[phases.install]
+cmds = ["which ffmpeg || echo 'FFmpeg not found in PATH'"]

@@ -3,6 +3,7 @@ from discord.ext import commands
 import yt_dlp
 import os
 import shutil
+import subprocess
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,8 +13,38 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Buscar FFmpeg en el sistema
-FFMPEG_PATH = shutil.which("ffmpeg") or "ffmpeg"
+# Buscar FFmpeg en múltiples ubicaciones
+def find_ffmpeg():
+    # Primero intentar con shutil.which
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg:
+        return ffmpeg
+    
+    # Rutas comunes en Railway/Nix
+    possible_paths = [
+        "/usr/bin/ffmpeg",
+        "/usr/local/bin/ffmpeg",
+        "/nix/store/*/bin/ffmpeg",
+        "ffmpeg"  # Fallback
+    ]
+    
+    for path in possible_paths:
+        try:
+            # Intentar ejecutar ffmpeg -version
+            if "*" in path:
+                # Para rutas con wildcard, usar find
+                continue
+            result = subprocess.run([path, "-version"], 
+                                   capture_output=True, 
+                                   timeout=5)
+            if result.returncode == 0:
+                return path
+        except:
+            continue
+    
+    return "ffmpeg"  # Fallback por defecto
+
+FFMPEG_PATH = find_ffmpeg()
 
 YDL_OPTIONS = {
     'format': 'bestaudio/best',
@@ -32,6 +63,20 @@ FFMPEG_OPTIONS = {
 async def on_ready():
     print(f'Bot conectado como {bot.user}')
     print(f'FFmpeg encontrado en: {FFMPEG_PATH}')
+    print(f'PATH: {os.environ.get("PATH", "No PATH set")}')
+    
+    # Intentar ejecutar ffmpeg para verificar
+    try:
+        result = subprocess.run([FFMPEG_PATH, "-version"], 
+                               capture_output=True, 
+                               text=True, 
+                               timeout=5)
+        if result.returncode == 0:
+            print("FFmpeg funcionando correctamente")
+        else:
+            print(f"FFmpeg error: {result.stderr}")
+    except Exception as e:
+        print(f"Error al verificar FFmpeg: {e}")
 
 @bot.command()
 async def join(ctx):
