@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import yt_dlp
 import os
+import shutil
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,6 +11,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# Buscar FFmpeg en el sistema
+FFMPEG_PATH = shutil.which("ffmpeg") or "ffmpeg"
 
 YDL_OPTIONS = {
     'format': 'bestaudio/best',
@@ -27,6 +31,7 @@ FFMPEG_OPTIONS = {
 @bot.event
 async def on_ready():
     print(f'Bot conectado como {bot.user}')
+    print(f'FFmpeg encontrado en: {FFMPEG_PATH}')
 
 @bot.command()
 async def join(ctx):
@@ -48,7 +53,7 @@ async def play(ctx, url):
             info = ydl.extract_info(url, download=False)
             url2 = info['url']
 
-        source = discord.FFmpegPCMAudio(url2, **FFMPEG_OPTIONS)
+        source = discord.FFmpegPCMAudio(url2, executable=FFMPEG_PATH, **FFMPEG_OPTIONS)
 
         vc.stop()
         vc.play(source)
