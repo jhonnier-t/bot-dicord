@@ -12,11 +12,15 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 YDL_OPTIONS = {
-    'format': 'bestaudio',
-    'noplaylist': True
+    'format': 'bestaudio/best',
+    'noplaylist': True,
+    'quiet': True,
+    'no_warnings': True,
+    'extract_flat': False
 }
 
 FFMPEG_OPTIONS = {
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn'
 }
 
@@ -39,16 +43,19 @@ async def play(ctx, url):
 
     vc = ctx.voice_client
 
-    with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
-        info = ydl.extract_info(url, download=False)
-        url2 = info['url']
+    try:
+        with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
+            info = ydl.extract_info(url, download=False)
+            url2 = info['url']
 
-    source = await discord.FFmpegOpusAudio.from_probe(url2)
+        source = discord.FFmpegPCMAudio(url2, **FFMPEG_OPTIONS)
 
-    vc.stop()
-    vc.play(source)
+        vc.stop()
+        vc.play(source)
 
-    await ctx.send(f"Reproduciendo: {info['title']}")
+        await ctx.send(f"Reproduciendo: {info['title']}")
+    except Exception as e:
+        await ctx.send(f"Error al reproducir: {str(e)}")
 
 @bot.command()
 async def stop(ctx):
