@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["ffmpeg-full", "libffi", "libsodium"]
+aptPkgs = ["ffmpeg"]
 
-[phases.install]
-cmds = ["which ffmpeg || echo 'FFmpeg not found in PATH'"]
+[start]
+cmd = "python bot.py"
