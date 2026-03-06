@@ -4,6 +4,7 @@ import yt_dlp
 import os
 import shutil
 import subprocess
+import glob
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,20 +21,22 @@ def find_ffmpeg():
     if ffmpeg:
         return ffmpeg
     
-    # Rutas comunes en Railway/Nix
+    # Buscar en /nix/store (Railway/Nixpacks)
+    try:
+        nix_paths = glob.glob("/nix/store/*/bin/ffmpeg")
+        if nix_paths:
+            return nix_paths[0]
+    except:
+        pass
+    
+    # Rutas comunes
     possible_paths = [
         "/usr/bin/ffmpeg",
         "/usr/local/bin/ffmpeg",
-        "/nix/store/*/bin/ffmpeg",
-        "ffmpeg"  # Fallback
     ]
     
     for path in possible_paths:
         try:
-            # Intentar ejecutar ffmpeg -version
-            if "*" in path:
-                # Para rutas con wildcard, usar find
-                continue
             result = subprocess.run([path, "-version"], 
                                    capture_output=True, 
                                    timeout=5)
@@ -63,7 +66,13 @@ FFMPEG_OPTIONS = {
 async def on_ready():
     print(f'Bot conectado como {bot.user}')
     print(f'FFmpeg encontrado en: {FFMPEG_PATH}')
-    print(f'PATH: {os.environ.get("PATH", "No PATH set")}')
+    
+    # Mostrar todos los FFmpeg disponibles en /nix/store
+    try:
+        nix_ffmpegs = glob.glob("/nix/store/*/bin/ffmpeg")
+        print(f'FFmpeg en /nix/store: {nix_ffmpegs}')
+    except Exception as e:
+        print(f'Error buscando en /nix/store: {e}')
     
     # Intentar ejecutar ffmpeg para verificar
     try:
@@ -72,11 +81,14 @@ async def on_ready():
                                text=True, 
                                timeout=5)
         if result.returncode == 0:
-            print("FFmpeg funcionando correctamente")
+            print("✅ FFmpeg funcionando correctamente")
+            # Mostrar primera línea de la versión
+            first_line = result.stdout.split('\n')[0]
+            print(f"Versión: {first_line}")
         else:
-            print(f"FFmpeg error: {result.stderr}")
+            print(f"❌ FFmpeg error: {result.stderr}")
     except Exception as e:
-        print(f"Error al verificar FFmpeg: {e}")
+        print(f"❌ Error al verificar FFmpeg: {e}")
 
 @bot.command()
 async def join(ctx):
